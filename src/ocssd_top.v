@@ -40,8 +40,7 @@ module ocssd_top #(
     output wire                   nand_ale,
     output wire                   nand_we_n,
     output wire                   nand_re_n,
-    output wire [7:0]             nand_io_out,
-    output wire                   nand_io_dir,
+    inout wire [7:0]              nand_io, // ФИКС: Честный inout на самом верху
     input wire                    nand_rb_n
 );
 
@@ -138,7 +137,7 @@ module ocssd_top #(
         .cmd_parsed_valid(flash_cmd_valid)
     );
 
-    // 5. НОВЫЙ БЛОК: Канальный контроллер ONFI NAND Flash
+    // 5. Контроллер ONFI NAND Flash с ФИКСИРОВАННЫМ маппингом портов
     onfi_chan_ctrl u_onfi_ctrl (
         .clk(clk),
         .rst(rst),
@@ -147,12 +146,12 @@ module ocssd_top #(
         .flash_chunk(flash_chunk),
         .flash_page(flash_page),
         .flash_engine_ready(),
+        .flash_write_error(),
         .nand_cle(nand_cle),
         .nand_ale(nand_ale),
         .nand_we_n(nand_we_n),
         .nand_re_n(nand_re_n),
-        .nand_io_out(nand_io_out),
-        .nand_io_dir(nand_io_dir),
+        .nand_io(nand_io), // Чистое сквозное подключение inout-шины
         .nand_rb_n(nand_rb_n)
     );
 

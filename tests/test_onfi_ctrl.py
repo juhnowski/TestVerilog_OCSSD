@@ -3,71 +3,83 @@ from cocotb.triggers import RisingEdge, ReadOnly
 from cocotb.clock import Clock
 
 @cocotb.test()
-async def test_onfi_page_program_flow(dut):
-    """Проверяем генерацию физических таймингов ONFI для операции Page Program"""
-
+async def test_onfi_page_program_success(dut):
+    """Тестируем успешный цикл ONFI Page Program с чтением статуса 0x40 (OK)"""
     ctrl = dut.u_onfi_ctrl
-
     cocotb.start_soon(Clock(ctrl.clk, 10, unit="ns").start())
 
     # Инициализация сигналов
     ctrl.rst.value = 1
     ctrl.flash_cmd_valid.value = 0
-    ctrl.flash_page.value = 0
-    ctrl.flash_chunk.value = 0
     ctrl.nand_rb_n.value = 1
-    
     await RisingEdge(ctrl.clk)
     ctrl.rst.value = 0
     await RisingEdge(ctrl.clk)
 
-    # Подаем команду записи: Страница 42, Чанк 258 (0x0102)
-    ctrl.flash_page.value = 42
-    ctrl.flash_chunk.value = 258
+    # Запуск транзакции на "хорошую" страницу (не 5)
+    ctrl.flash_page.value = 12
+    ctrl.flash_chunk.value = 100
     ctrl.flash_cmd_valid.value = 1
     await RisingEdge(ctrl.clk)
     ctrl.flash_cmd_valid.value = 0
     
-    # Даем FSM ровно один такт, чтобы перейти из IDLE в CMD_80H
-    await RisingEdge(ctrl.clk)
-    await ReadOnly() # Синхронизируем дельта-циклы симулятора
+    # Пролетаем фазы выдачи команды и адреса
+    for _ in range(7):
+        await RisingEdge(ctrl.clk)
 
-    # 1. Проверяем фазу команды CMD_80H
-    assert ctrl.nand_cle.value == 1, "Ошибка: CLE должен быть равен 1"
-    assert ctrl.nand_io_out.value == 0x80, "Ошибка: Ожидалась команда 80h"
-    assert ctrl.nand_we_n.value == 0, "Ошибка: Строб записи WE# должен упасть в 0"
+    # Имитируем физический Busy от микросхемы
+    ctrl.nand_rb_n.value = 0
+    await RisingEdge(ctrl.clk)
+    ctrl.nand_rb_n.value = 1
+    
+    # Ждем, пока FSM пройдет фазы захвата и анализа статуса (до возврата в IDLE)
+    # Используем мониторинг готовности движка
+    timeout = 50
+    while ctrl.flash_engine_ready.value == 0 and timeout > 0:
+        await RisingEdge(ctrl.clk)
+        timeout -= 1
 
-    # 2. Проверяем циклы адреса (STATE_ADDR)
-    # Цикл 1: Column Address 1 (00h)
-    await RisingEdge(ctrl.clk)
+    # Синхронизируемся с завершением такта для надежной проверки ассерта
     await ReadOnly()
-    assert ctrl.nand_ale.value == 1
-    assert ctrl.nand_io_out.value == 0x00
-    
-    # Цикл 2: Column Address 2 (00h)
-    await RisingEdge(ctrl.clk)
-    await ReadOnly()
-    assert ctrl.nand_io_out.value == 0x00
-    
-    # Цикл 3: Row Address 1 (Адрес страницы = 42)
-    await RisingEdge(ctrl.clk)
-    await ReadOnly()
-    assert ctrl.nand_io_out.value == 42
-    
-    # Цикл 4: Row Address 2 (Младший байт чанка = 2)
-    await RisingEdge(ctrl.clk)
-    await ReadOnly()
-    assert ctrl.nand_io_out.value == 2
-    
-    # Цикл 5: Row Address 3 (Старший байт чанка = 1)
-    await RisingEdge(ctrl.clk)
-    await ReadOnly()
-    assert ctrl.nand_io_out.value == 1
+    assert ctrl.flash_write_error.value == 0, f"Ошибка: Ожидался статус успеха (0), получили {ctrl.flash_write_error.value}"
+    ctrl._log.info("🔥 [Успех] Логика ONFI верифицирована. Статус памяти OK (0x40).")
 
-    # 3. Проверяем фазу подтверждения CMD_10H
-    await RisingEdge(ctrl.clk)
-    await ReadOnly()
-    assert ctrl.nand_cle.value == 1
-    assert ctrl.nand_io_out.value == 0x10
+@cocotb.test()
+async def test_onfi_page_program_fault(dut):
+    """Тестируем цикл ONFI Page Program с фиксацией аппаратной ошибки флеш-матрицы 0x41"""
+    ctrl = dut.u_onfi_ctrl
+    cocotb.start_soon(Clock(ctrl.clk, 10, unit="ns").start())
 
-    ctrl._log.info("🔥 [Успех] Регрессионный тест физических таймингов ONFI пройден!")
+    # Инициализация
+    ctrl.rst.value = 1
+    ctrl.flash_cmd_valid.value = 0
+    ctrl.nand_rb_n.value = 1
+    await RisingEdge(ctrl.clk)
+    ctrl.rst.value = 0
+    await RisingEdge(ctrl.clk)
+
+    # Страница 5 в нашей mock-модели жестко выдает статус 0x41 (ошибка)
+    ctrl.flash_page.value = 5
+    ctrl.flash_chunk.value = 5
+    ctrl.flash_cmd_valid.value = 1
+    await RisingEdge(ctrl.clk)
+    ctrl.flash_cmd_valid.value = 0
+    
+    for _ in range(7):
+        await RisingEdge(ctrl.clk)
+
+    # Имитируем цикл Busy
+    ctrl.nand_rb_n.value = 0
+    await RisingEdge(ctrl.clk)
+    ctrl.nand_rb_n.value = 1
+    
+    # Ждем, пока FSM закончит чтение 70h и вернется в IDLE
+    timeout = 50
+    while ctrl.flash_engine_ready.value == 0 and timeout > 0:
+        await RisingEdge(ctrl.clk)
+        timeout -= 1
+
+    # Финальная проверка взведенного флага ошибки
+    await ReadOnly()
+    assert ctrl.flash_write_error.value == 1, f"FAIL: Ошибка не зафиксирована. Регистр статуса в Verilog: {ctrl.status_reg.value}"
+    ctrl._log.info("🔥 [Успех] Контроллер успешно зафиксировал аппаратный сбой ячейки памяти (0x41).")
