@@ -1,12 +1,14 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 
+# Добавляем оба файла в симуляцию
 VERILOG_SOURCES += $(PWD)/src/nvme_regs.v
+VERILOG_SOURCES += $(PWD)/src/nvme_parser.v
 
-TOPLEVEL = nvme_regs
-COCOTB_TEST_MODULES = tests.test_nvme_regs
+# Тестируем теперь парсер
+TOPLEVEL = nvme_parser
+COCOTB_TEST_MODULES = tests.test_nvme_parser
 
-# Стандартный флаг Cocotb для автоматической генерации волн (VCD/FST)
 COCOTB_WAVES = 1
 
 include $(shell cocotb-config --makefiles)/Makefile.sim
