@@ -1,3 +1,4 @@
+// ocssd_top.v
 `timescale 1ns / 1ps
 
 module ocssd_top #(
@@ -40,7 +41,7 @@ module ocssd_top #(
     output wire                   nand_ale,
     output wire                   nand_we_n,
     output wire                   nand_re_n,
-    inout wire [7:0]              nand_io, // ФИКС: Честный inout на самом верху
+    inout wire [7:0]              nand_io, 
     input wire                    nand_rb_n
 );
 
@@ -59,6 +60,10 @@ module ocssd_top #(
     wire [15:0]  flash_chunk;
     wire [15:0]  flash_page;
     wire         flash_cmd_valid;
+
+    // Сигналы интерфейса SRAM буфера
+    wire [12:0]  chan_raddr; // 13-битная шина для адресации 4КБ данных
+    wire [7:0]   chan_rdata;
 
     // 1. Модуль регистров (BAR0 Space)
     nvme_regs #(
@@ -137,8 +142,10 @@ module ocssd_top #(
         .cmd_parsed_valid(flash_cmd_valid)
     );
 
-    // 5. Контроллер ONFI NAND Flash с ФИКСИРОВАННЫМ маппингом портов
-    onfi_chan_ctrl u_onfi_ctrl (
+    // 5. Контроллер ONFI NAND Flash со сквозным Data Path интерфейсом
+    onfi_chan_ctrl #(
+        .CLK_PER_WE_HALF_CYCLE(2) // Настройка Wait States
+    ) u_onfi_ctrl (
         .clk(clk),
         .rst(rst),
         .flash_cmd_valid(flash_cmd_valid),
@@ -151,8 +158,57 @@ module ocssd_top #(
         .nand_ale(nand_ale),
         .nand_we_n(nand_we_n),
         .nand_re_n(nand_re_n),
-        .nand_io(nand_io), // Чистое сквозное подключение inout-шины
-        .nand_rb_n(nand_rb_n)
+        .nand_io(nand_io),
+        .nand_rb_n(nand_rb_n),
+        
+        // Связь с памятью внутри топа
+        .buffer_raddr(chan_raddr),
+        .buffer_rdata(chan_rdata),
+        .tx_byte_count(13'd4096)
     );
+
+    // =========================================================================
+    // Реализация внутренней SRAM памяти (4 КБ)
+    // =========================================================================
+    localparam BUFFER_SIZE_BYTES = 4096;
+    localparam ONFI_DATA_WIDTH   = 8;
+
+    reg [ONFI_DATA_WIDTH-1:0] data_buffer [0:BUFFER_SIZE_BYTES-1];
+    reg [5:0] dma_block_addr; // Счетчик 64-байтных блоков (0..63)
+
+    // Управление автоматической адресацией блоков по шине PCIe
+    wire dma_write_en = pcie_dma_valid; 
+
+    // Инициализация памяти для предотвращения неопределенных 'X' состояний
+    initial begin : ram_init
+        integer k;
+        for (k = 0; k < BUFFER_SIZE_BYTES; k = k + 1) begin
+            data_buffer[k] = 8'h00;
+        end
+    end
+
+    // ФИКС ТАЙМИНГА: Перенос инкремента адреса блока на спад тактовой частоты (negedge).
+    // Это гарантирует, что при симуляции в Icarus Verilog у адреса будет запас
+    // в половину периода для фиксации перед записью данных по posedge clk.
+    always @(negedge clk or posedge rst) begin
+        if (rst) begin
+            dma_block_addr <= 6'h0;
+        end else if (dma_write_en) begin
+            dma_block_addr <= (dma_block_addr + 1) & 6'h3F;
+        end
+    end
+
+    // --- Порт А: Запись от внешней шины PCIe (512-bit) по фронту clk ---
+    integer i;
+    always @(posedge clk) begin
+        if (dma_write_en) begin
+            for (i = 0; i < 64; i = i + 1) begin
+                data_buffer[((dma_block_addr & 6'h3F) * 64) + i] <= (pcie_dma_data >> (i * 8)) & 8'hFF;
+            end
+        end
+    end
+
+    // --- Порт Б: Асинхронное чтение канальным контроллером (8-bit) ---
+    assign chan_rdata = data_buffer[chan_raddr & 13'hFFF];
 
 endmodule

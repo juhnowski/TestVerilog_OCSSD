@@ -12,8 +12,8 @@ VERILOG_SOURCES += $(PWD)/src/ocssd_top.v
 # Глобальный топ-уровень для всей пачки тестов
 TOPLEVEL = ocssd_top
 
-# Сквозная обойма из 6 тестов регрессии
-COCOTB_TEST_MODULES = tests.test_nvme_regs,tests.test_nvme_parser,tests.test_ocssd_top,tests.test_queue_arbiter,tests.test_dma_mover,tests.test_onfi_ctrl
+# Сквозная обойма тестов регрессии (включая верификацию Data Path Варианта А)
+COCOTB_TEST_MODULES = tests.test_nvme_regs,tests.test_nvme_parser,tests.test_ocssd_top,tests.test_queue_arbiter,tests.test_dma_mover,tests.test_onfi_ctrl,tests.test_onfi_data_path
 
 COCOTB_WAVES = 1
 

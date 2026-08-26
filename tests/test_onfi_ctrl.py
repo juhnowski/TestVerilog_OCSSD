@@ -75,11 +75,24 @@ async def test_onfi_page_program_fault(dut):
     
     # Ждем, пока FSM закончит чтение 70h и вернется в IDLE
     timeout = 50
-    while ctrl.flash_engine_ready.value == 0 and timeout > 0:
-        await RisingEdge(ctrl.clk)
-        timeout -= 1
-
-    # Финальная проверка взведенного флага ошибки
+    while int(ctrl.current_state.value) != 0: # Ждем IDLE
+        await RisingEdge(dut.clk)
+    
+    # ФИКС: Даем один такт на обновление выходных портов ошибки
+    await RisingEdge(dut.clk)
     await ReadOnly()
-    assert ctrl.flash_write_error.value == 1, f"FAIL: Ошибка не зафиксирована. Регистр статуса в Verilog: {ctrl.status_reg.value}"
-    ctrl._log.info("🔥 [Успех] Контроллер успешно зафиксировал аппаратный сбой ячейки памяти (0x41).")
+    
+    assert ctrl.flash_write_error.value == 1, "Ошибка не была зафиксирована в регистре!"
+
+    # Стало (добавляем Delta-задержку симулятора для обновления inout шины):
+    while True:
+        await RisingEdge(dut.clk)
+        # Если за топ-уровень взят ocssd_top, проверяем состояние через u_onfi_ctrl
+        state = dut.u_onfi_ctrl.current_state.value if hasattr(dut, 'u_onfi_ctrl') else dut.current_state.value
+        if state == 0: # Возврат в STATE_IDLE
+            break
+
+    # Дополнительно даем 1 такт, чтобы регистр flash_write_error обновился в Verilog окончательно
+    await RisingEdge(dut.clk) 
+
+    assert (dut.u_onfi_ctrl.flash_write_error.value if hasattr(dut, 'u_onfi_ctrl') else dut.flash_write_error.value) == 1
