@@ -1,6 +1,8 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1787766326" />
-    <testcase name="test_parser_ocssd_command" classname="tests.test_nvme_parser" file="/home/ilya/TestVerilog/tests/test_nvme_parser.py" lineno="34" time="0.0009958744049072266" sim_time_ns="30.0" ratio_time="30124.280584151304" />
+    <property name="random_seed" value="1787768535" />
+    <testcase name="test_doorbell_write" classname="tests.test_nvme_regs" file="/home/ilya/TestVerilog/tests/test_nvme_regs.py" lineno="5" time="0.0009875297546386719" sim_time_ns="40.0" ratio_time="40505.10864316755" />
+    <testcase name="test_parser_ocssd_command" classname="tests.test_nvme_parser" file="/home/ilya/TestVerilog/tests/test_nvme_parser.py" lineno="24" time="0.0008785724639892578" sim_time_ns="40.00000000000001" ratio_time="45528.401628222535" />
+    <testcase name="test_complete_ocssd_flow" classname="tests.test_ocssd_top" file="/home/ilya/TestVerilog/tests/test_ocssd_top.py" lineno="6" time="0.0010311603546142578" sim_time_ns="60.000000000000014" ratio_time="58186.87630057805" />
   </testsuite>
 </testsuites>
