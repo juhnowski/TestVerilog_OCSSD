@@ -7,8 +7,8 @@ module ocssd_top #(
     input wire                    clk,
     input wire                    rst,
 
-    // AXI-Lite Slave интерфейс для регистров BAR0 (Регистры)
-    input wire [15:0]             s_axil_awaddr, // Используем 16-бит для внутренней адресации регистров
+    // AXI-Lite Slave интерфейс для регистров BAR0
+    input wire [15:0]             s_axil_awaddr,
     input wire                    s_axil_awvalid,
     output wire                   s_axil_awready,
     input wire [DATA_WIDTH-1:0]   s_axil_wdata,
@@ -30,10 +30,10 @@ module ocssd_top #(
     input wire                    dma_read_desc_ready,
     input wire                    dma_read_desc_status_valid,
 
-    // Входной поток данных от DMA (64 байта команды)
-    input wire [511:0]            dma_cmd_data,
-    input wire                    dma_cmd_valid,
-    output wire                   dma_cmd_ready,
+    // Входной физический поток данных от шины PCIe DMA (512 бит)
+    input wire [511:0]            pcie_dma_data,
+    input wire                    pcie_dma_valid,
+    output wire                   pcie_dma_ready,
 
     // Выходы физической геометрии NAND для Flash Translation Layer (FTL)
     output wire [7:0]             flash_channel,
@@ -43,14 +43,18 @@ module ocssd_top #(
     output wire                   flash_cmd_valid
 );
 
-    // Внутренние связи между блоками
+    // Внутренние связи
     wire [15:0] admin_sq_tail;
     wire        admin_sq_tail_update;
     wire [15:0] io_sq1_tail;
     wire        io_sq1_tail_update;
+    
+    // Внутренняя 512-битная шина между Data Mover и Парсером
+    wire [511:0] parsed_cmd_data;
+    wire         parsed_cmd_valid;
+    wire         parsed_cmd_ready;
 
     // 1. Модуль регистров (BAR0 Space)
-    // Расширим nvme_regs.v для поддержки звонка IO SQ1 (Адрес 0x1008 по спецификации)
     nvme_regs #(
         .ADDR_WIDTH(16),
         .DATA_WIDTH(DATA_WIDTH)
@@ -71,7 +75,6 @@ module ocssd_top #(
         .admin_sq_tail_update(admin_sq_tail_update)
     );
 
-    // Временная заглушка для второго звонка, пока не расширили nvme_regs
     assign io_sq1_tail = 16'h0; 
     assign io_sq1_tail_update = 1'b0;
 
@@ -97,13 +100,27 @@ module ocssd_top #(
         .fetch_start()
     );
 
-    // 3. Парсер 64-байтных команд NVMe / OCSSD
+    // 3. НОВЫЙ БЛОК: DMA Data Mover (Буферизация шины PCIe)
+    dma_data_mover #(
+        .DATA_WIDTH(512)
+    ) u_dma_mover (
+        .clk(clk),
+        .rst(rst),
+        .pcie_dma_data(pcie_dma_data),
+        .pcie_dma_valid(pcie_dma_valid),
+        .pcie_dma_ready(pcie_dma_ready),
+        .out_cmd_data(parsed_cmd_data),
+        .out_cmd_valid(parsed_cmd_valid),
+        .out_cmd_ready(parsed_cmd_ready)
+    );
+
+    // 4. Парсер 64-байтных команд OCSSD
     nvme_parser u_parser (
         .clk(clk),
         .rst(rst),
-        .cmd_data(dma_cmd_data),
-        .cmd_valid(dma_cmd_valid),
-        .cmd_ready(dma_cmd_ready),
+        .cmd_data(parsed_cmd_data),
+        .cmd_valid(parsed_cmd_valid),
+        .cmd_ready(parsed_cmd_ready),
         .cmd_opcode(),
         .cmd_prp1(),
         .cmd_prp2(),

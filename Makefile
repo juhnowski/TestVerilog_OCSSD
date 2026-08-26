@@ -1,17 +1,18 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 
-# Все исходники
+# Полный стек файлов
 VERILOG_SOURCES += $(PWD)/src/nvme_regs.v
 VERILOG_SOURCES += $(PWD)/src/nvme_parser.v
 VERILOG_SOURCES += $(PWD)/src/queue_arbiter.v
+VERILOG_SOURCES += $(PWD)/src/dma_data_mover.v
 VERILOG_SOURCES += $(PWD)/src/ocssd_top.v
 
-# ФИКС РЕГРЕССИИ: Возвращаем топ-модуль проекта
+# Глобальный топ-уровень
 TOPLEVEL = ocssd_top
 
-# Все 4 теста в одной обойме
-COCOTB_TEST_MODULES = tests.test_nvme_regs,tests.test_nvme_parser,tests.test_ocssd_top,tests.test_queue_arbiter
+# Полная обойма из 5 тестов для непрерывного регресса
+COCOTB_TEST_MODULES = tests.test_nvme_regs,tests.test_nvme_parser,tests.test_ocssd_top,tests.test_queue_arbiter,tests.test_dma_mover
 
 COCOTB_WAVES = 1
 
