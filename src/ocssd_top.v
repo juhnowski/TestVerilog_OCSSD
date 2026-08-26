@@ -19,7 +19,7 @@ module ocssd_top #(
     output wire                   s_axil_bvalid,
     input wire                    s_axil_bready,
 
-    // Настройка базовых адресов очередей со стороны хоста
+    // Настройка базовых адресов очередей
     input wire [ADDR_WIDTH-1:0]   admin_sq_base_addr,
     input wire [ADDR_WIDTH-1:0]   io_sq1_base_addr,
 
@@ -35,24 +35,31 @@ module ocssd_top #(
     input wire                    pcie_dma_valid,
     output wire                   pcie_dma_ready,
 
-    // Выходы физической геометрии NAND для Flash Translation Layer (FTL)
-    output wire [7:0]             flash_channel,
-    output wire [7:0]             flash_lun,
-    output wire [15:0]            flash_chunk,
-    output wire [15:0]            flash_page,
-    output wire                   flash_cmd_valid
+    // Физический интерфейс к выводам микросхемы NAND Flash (стандарт ONFI)
+    output wire                   nand_cle,
+    output wire                   nand_ale,
+    output wire                   nand_we_n,
+    output wire                   nand_re_n,
+    output wire [7:0]             nand_io_out,
+    output wire                   nand_io_dir,
+    input wire                    nand_rb_n
 );
 
-    // Внутренние связи
+    // Внутренние связи конвейера
     wire [15:0] admin_sq_tail;
     wire        admin_sq_tail_update;
     wire [15:0] io_sq1_tail;
     wire        io_sq1_tail_update;
     
-    // Внутренняя 512-битная шина между Data Mover и Парсером
     wire [511:0] parsed_cmd_data;
     wire         parsed_cmd_valid;
     wire         parsed_cmd_ready;
+
+    wire [7:0]   flash_channel;
+    wire [7:0]   flash_lun;
+    wire [15:0]  flash_chunk;
+    wire [15:0]  flash_page;
+    wire         flash_cmd_valid;
 
     // 1. Модуль регистров (BAR0 Space)
     nvme_regs #(
@@ -100,7 +107,7 @@ module ocssd_top #(
         .fetch_start()
     );
 
-    // 3. НОВЫЙ БЛОК: DMA Data Mover (Буферизация шины PCIe)
+    // 3. DMA Data Mover (Буферизация шины PCIe)
     dma_data_mover #(
         .DATA_WIDTH(512)
     ) u_dma_mover (
@@ -129,6 +136,24 @@ module ocssd_top #(
         .ppa_chunk(flash_chunk),
         .ppa_page(flash_page),
         .cmd_parsed_valid(flash_cmd_valid)
+    );
+
+    // 5. НОВЫЙ БЛОК: Канальный контроллер ONFI NAND Flash
+    onfi_chan_ctrl u_onfi_ctrl (
+        .clk(clk),
+        .rst(rst),
+        .flash_cmd_valid(flash_cmd_valid),
+        .flash_lun(flash_lun),
+        .flash_chunk(flash_chunk),
+        .flash_page(flash_page),
+        .flash_engine_ready(),
+        .nand_cle(nand_cle),
+        .nand_ale(nand_ale),
+        .nand_we_n(nand_we_n),
+        .nand_re_n(nand_re_n),
+        .nand_io_out(nand_io_out),
+        .nand_io_dir(nand_io_dir),
+        .nand_rb_n(nand_rb_n)
     );
 
 endmodule

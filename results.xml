@@ -1,10 +1,11 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1787774581" />
-    <testcase name="test_doorbell_write" classname="tests.test_nvme_regs" file="/home/ilya/TestVerilog/tests/test_nvme_regs.py" lineno="5" time="0.0010173320770263672" sim_time_ns="40.0" ratio_time="39318.52823998125" />
-    <testcase name="test_parser_ocssd_command" classname="tests.test_nvme_parser" file="/home/ilya/TestVerilog/tests/test_nvme_parser.py" lineno="24" time="0.0009405612945556641" sim_time_ns="40.00000000000001" ratio_time="42527.797211660334" />
-    <testcase name="test_complete_ocssd_flow" classname="tests.test_ocssd_top" file="/home/ilya/TestVerilog/tests/test_ocssd_top.py" lineno="6" time="0.0010006427764892578" sim_time_ns="70.00000000000001" ratio_time="69955.03454848703" />
-    <testcase name="test_queue_arbitration_and_dma_desc" classname="tests.test_queue_arbiter" file="/home/ilya/TestVerilog/tests/test_queue_arbiter.py" lineno="5" time="0.0014331340789794922" sim_time_ns="130.0" ratio_time="90710.28447845616" />
-    <testcase name="test_dma_data_capture" classname="tests.test_dma_mover" file="/home/ilya/TestVerilog/tests/test_dma_mover.py" lineno="5" time="0.0006890296936035156" sim_time_ns="30.0" ratio_time="43539.487889273354" />
+    <property name="random_seed" value="1787775591" />
+    <testcase name="test_doorbell_write" classname="tests.test_nvme_regs" file="/home/ilya/TestVerilog/tests/test_nvme_regs.py" lineno="5" time="0.0010178089141845703" sim_time_ns="40.0" ratio_time="39300.107753572265" />
+    <testcase name="test_parser_ocssd_command" classname="tests.test_nvme_parser" file="/home/ilya/TestVerilog/tests/test_nvme_parser.py" lineno="24" time="0.0009059906005859375" sim_time_ns="40.00000000000001" ratio_time="44150.56842105264" />
+    <testcase name="test_complete_ocssd_flow" classname="tests.test_ocssd_top" file="/home/ilya/TestVerilog/tests/test_ocssd_top.py" lineno="6" time="0.0009911060333251953" sim_time_ns="70.00000000000001" ratio_time="70628.16454173684" />
+    <testcase name="test_queue_arbitration_and_dma_desc" classname="tests.test_queue_arbiter" file="/home/ilya/TestVerilog/tests/test_queue_arbiter.py" lineno="5" time="0.0014710426330566406" sim_time_ns="130.0" ratio_time="88372.69367909238" />
+    <testcase name="test_dma_data_capture" classname="tests.test_dma_mover" file="/home/ilya/TestVerilog/tests/test_dma_mover.py" lineno="5" time="0.0006346702575683594" sim_time_ns="30.0" ratio_time="47268.640120210366" />
+    <testcase name="test_onfi_page_program_flow" classname="tests.test_onfi_ctrl" file="/home/ilya/TestVerilog/tests/test_onfi_ctrl.py" lineno="5" time="0.0010752677917480469" sim_time_ns="100.0" ratio_time="93000.08869179602" />
   </testsuite>
 </testsuites>
