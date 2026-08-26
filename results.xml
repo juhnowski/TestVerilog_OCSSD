@@ -1,8 +1,9 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1787768535" />
-    <testcase name="test_doorbell_write" classname="tests.test_nvme_regs" file="/home/ilya/TestVerilog/tests/test_nvme_regs.py" lineno="5" time="0.0009875297546386719" sim_time_ns="40.0" ratio_time="40505.10864316755" />
-    <testcase name="test_parser_ocssd_command" classname="tests.test_nvme_parser" file="/home/ilya/TestVerilog/tests/test_nvme_parser.py" lineno="24" time="0.0008785724639892578" sim_time_ns="40.00000000000001" ratio_time="45528.401628222535" />
-    <testcase name="test_complete_ocssd_flow" classname="tests.test_ocssd_top" file="/home/ilya/TestVerilog/tests/test_ocssd_top.py" lineno="6" time="0.0010311603546142578" sim_time_ns="60.000000000000014" ratio_time="58186.87630057805" />
+    <property name="random_seed" value="1787773432" />
+    <testcase name="test_doorbell_write" classname="tests.test_nvme_regs" file="/home/ilya/TestVerilog/tests/test_nvme_regs.py" lineno="5" time="0.0012664794921875" sim_time_ns="40.0" ratio_time="31583.614457831325" />
+    <testcase name="test_parser_ocssd_command" classname="tests.test_nvme_parser" file="/home/ilya/TestVerilog/tests/test_nvme_parser.py" lineno="24" time="0.0009548664093017578" sim_time_ns="40.00000000000001" ratio_time="41890.67665418228" />
+    <testcase name="test_complete_ocssd_flow" classname="tests.test_ocssd_top" file="/home/ilya/TestVerilog/tests/test_ocssd_top.py" lineno="6" time="0.0010409355163574219" sim_time_ns="60.000000000000014" ratio_time="57640.45808520386" />
+    <testcase name="test_queue_arbitration_and_dma_desc" classname="tests.test_queue_arbiter" file="/home/ilya/TestVerilog/tests/test_queue_arbiter.py" lineno="5" time="0.0014371871948242188" sim_time_ns="130.0" ratio_time="90454.46582614466" />
   </testsuite>
 </testsuites>
